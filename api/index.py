@@ -22,17 +22,20 @@ def otakudesu_route():
     
 @app.route("/api/cekresi", methods=["GET"])
 def cekresi_route():
-    nomer_resi = request.args.get("nomer_resi")
-    ekspedisi = request.args.get("ekspedisi")
-    if not nomer_resi:
-        return jsonify({ "status": 400, "msg": 'Parameter "nomer_resi" tidak dapat ditemukan' }), 400
-    if not ekspedisi:
-        return jsonify({ "status": 401, "msg": 'Parameter "ekspedisi" tidak dapat ditemukan' })
-    else:
-        try:
-            data = Cekresi(nomer_resi, ekspedisi)
-            return jsonify({ "status": 200, "result": data }), 200
-        except Exception as e:
-            return jsonify({ "status": 500, "result": str(e) }), 500
+    try:
+        nomer_resi = request.args.get("nomer_resi")
+        ekspedisi = request.args.get("ekspedisi")
+        if not nomer_resi:
+            return jsonify({ "status": 400, "msg": 'Parameter "nomer_resi" tidak ditemukan' }), 400
+        if not ekspedisi:
+            return jsonify({ "status": 400, "msg": 'Parameter "ekspedisi" tidak ditemukan' }), 400
+
+        result = Cekresi(nomer_resi, ekspedisi)
+        return jsonify({ "status": 200, "result": result }), 200
+
+    except ValueError as e:
+        return jsonify({ "status": 400, "msg": str(e) }), 400
+    except Exception as e:
+        return jsonify({ "status": 500, "msg": f"Terjadi kesalahan: {str(e)}" }), 500
 
 app = app
