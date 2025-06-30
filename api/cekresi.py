@@ -144,4 +144,4 @@ def Cekresi(noresi, ekspedisi):
         alert_error = soup_res.select_one('.alert.alert-danger, .alert.alert-warning')
         result["message"] = alert_error.text.strip() if alert_error else 'Tidak dapat mengambil informasi resi'
 
-    return { "msg": result["message"], "result": result["data"] }
+    return { "msg": result["message"], "data": result["data"] }
