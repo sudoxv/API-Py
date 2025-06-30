@@ -1,3 +1,4 @@
+import asyncio
 import websockets
 import json
 import base64
@@ -7,43 +8,49 @@ import string
 class ColorifyAI:
     def __init__(self):
         self.base_url = "wss://colorifyai.art"
-        self.session_hash = self._generate_hash()
 
     def _generate_hash(self):
         return ''.join(random.choices(string.ascii_lowercase + string.digits, k=12))
 
     async def _create_socket(self, endpoint, data):
+        session_hash = self._generate_hash()
         uri = f"{self.base_url}/{endpoint}/queue/join"
+
         async with websockets.connect(uri) as websocket:
-            await websocket.send(json.dumps({ "session_hash": self.session_hash }))
+            await websocket.send(json.dumps({ "session_hash": session_hash }))
 
             while True:
-                message = await websocket.recv()
-                d = json.loads(message)
+                raw_msg = await websocket.recv()
+                msg = json.loads(raw_msg)
 
-                if d.get("msg") == "send_hash":
-                    await websocket.send(json.dumps({ "session_hash": self.session_hash }))
-                elif d.get("msg") == "send_data":
-                    await websocket.send(json.dumps({ "session_hash": self.session_hash, "fn_index": 0, "data": data }))
-                elif d.get("msg") == "process_completed":
-                    return d["output"]["result"][0]
-                elif d.get("msg") in ["estimation", "process_starts"]:
+                if msg.get("msg") == "send_hash":
+                    await websocket.send(json.dumps({ "session_hash": session_hash }))
+                elif msg.get("msg") == "send_data":
+                    await websocket.send(json.dumps({
+                        "session_hash": session_hash,
+                        "fn_index": 0,
+                        "data": data
+                    }))
+                elif msg.get("msg") == "process_completed":
+                    result = msg["output"]["result"][0]
+                    return result
+                elif msg.get("msg") in ["estimation", "process_starts"]:
                     continue
-                elif d.get("msg") == "queue_full":
-                    raise Exception("Server queue is full.")
+                elif msg.get("msg") == "queue_full":
+                    raise Exception("Queue penuh di server ColorifyAI")
                 else:
                     continue
 
-    async def text2sketch(self, prompt, *, ratio='1:1', style='default'):
+    async def text2sketch(self, prompt, ratio='1:1', style='default'):
         valid_ratios = ['1:1', '3:4', '4:3', '9:16', '16:9', '2:3', '3:2']
         valid_styles = ['default', 'sci-fi', 'pixel', 'chibi', 'graffiti', 'minimalist', 'anime']
 
         if not prompt:
-            raise ValueError("Prompt is required")
+            raise ValueError("Prompt diperlukan")
         if ratio not in valid_ratios:
-            raise ValueError(f"Invalid ratio. Available: {', '.join(valid_ratios)}")
+            raise ValueError(f"Ratio harus salah satu dari: {', '.join(valid_ratios)}")
         if style not in valid_styles:
-            raise ValueError(f"Invalid style. Available: {', '.join(valid_styles)}")
+            raise ValueError(f"Style harus salah satu dari: {', '.join(valid_styles)}")
 
         data = {
             "aspect_ratio": ratio,
@@ -51,16 +58,18 @@ class ColorifyAI:
             "request_from": 10,
             "style": style
         }
+
         return await self._create_socket("demo-colorify-text2img", data)
 
-    async def image2sketch(self, buffer):
-        if not buffer:
-            raise ValueError("Image buffer is required")
+    async def image2sketch(self, image_bytes):
+        if not image_bytes:
+            raise ValueError("Gambar harus diberikan dalam bentuk bytes")
 
-        base64_image = f"data:image/jpeg;base64,{base64.b64encode(buffer).decode()}"
+        base64_image = base64.b64encode(image_bytes).decode()
         data = {
-            "source_image": base64_image,
-            "request_from": 10
+            "request_from": 10,
+            "source_image": f"data:image/jpeg;base64,{base64_image}"
         }
+
         result = await self._create_socket("demo-colorify-img2img", data)
         return f"https://temp.colorifyai.art/{result}"
