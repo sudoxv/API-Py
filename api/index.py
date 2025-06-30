@@ -32,5 +32,4 @@ def cekresi_route():
         data = Cekresi(nomer_resi, ekspedisi)
         return jsonify({ "status": 200, "result": data }), 200
 
-if __name__ == "__main__":
-    app.run(port=8080)
+app = app
