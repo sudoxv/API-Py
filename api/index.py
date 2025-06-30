@@ -29,7 +29,10 @@ def cekresi_route():
     if not ekspedisi:
         return jsonify({ "status": 401, "msg": 'Parameter "ekspedisi" tidak dapat ditemukan' })
     else:
-        data = Cekresi(nomer_resi, ekspedisi)
-        return jsonify({ "status": 200, "result": data }), 200
+        try:
+            data = Cekresi(nomer_resi, ekspedisi)
+            return jsonify({ "status": 200, "result": data }), 200
+        except Exception as e:
+            return jsonify({ "status": 500, "result": str(e) }), 500
 
 app = app
