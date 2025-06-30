@@ -6,8 +6,8 @@ import base64
 import random
 import string
 import re
-from otakudesu import Otakudesu
-from cekresi import Cekresi
+from .otakudesu import Otakudesu
+from .cekresi import Cekresi
 
 app = Flask(__name__)
 
